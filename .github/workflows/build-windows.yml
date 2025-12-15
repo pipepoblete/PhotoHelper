@@ -1,0 +1,54 @@
+name: Build Windows Executable
+
+# This workflow runs when you:
+# 1. Push a tag starting with 'v' (like v1.0.0)
+# 2. Manually trigger it from GitHub Actions tab
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    # Step 1: Get the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    # Step 2: Set up Python 3.12
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    # Step 3: Install your project and dependencies
+    - name: Install project dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+    
+    # Step 4: Install PyInstaller (tool that creates .exe files)
+    - name: Install PyInstaller
+      run: |
+        pip install pyinstaller
+    
+    # Step 5: Pre-download InsightFace models (so they're included in the build)
+    - name: Download InsightFace models
+      run: |
+        python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l'); app.prepare(ctx_id=-1, det_size=(640, 640))"
+      continue-on-error: true
+    
+    # Step 6: Build the executable
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller --name jotita --onefile --windowed --noconfirm --hiddenimport=tkinter --hiddenimport=agents.identity_grouping --hiddenimport=agents.best_photo_selection --hiddenimport=agents.portrait_cropping --hiddenimport=agents.brightness_normalization --hiddenimport=agents.shared --hiddenimport=pipeline --hiddenimport=cv2 --hiddenimport=numpy --hiddenimport=insightface --hiddenimport=onnxruntime --hiddenimport=sklearn --hiddenimport=skimage main.py
+    
+    # Step 7: Upload the .exe file as a downloadable artifact
+    - name: Upload Windows executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: jotita-windows-exe
+        path: dist/jotita.exe
