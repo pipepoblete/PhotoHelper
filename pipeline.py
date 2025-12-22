@@ -8,7 +8,6 @@ from typing import Iterable
 import cv2
 
 from agents import (
-    BestPhotoSelectionAgent,
     IdentityGroupingAgent,
     PortraitCroppingAgent,
 )
@@ -60,7 +59,6 @@ def run_pipeline(
         stage_name="Seleccionando imagenes",
     )
 
-    best_agent = BestPhotoSelectionAgent()
     crop_agent = PortraitCroppingAgent()
 
     batches: list[IdentityBatch] = []
@@ -73,10 +71,10 @@ def run_pipeline(
         if progress_callback:
             progress_callback(progress_stage, index, total_persons)
 
-        selected_faces = best_agent.select(faces)
         processed_faces: list[SelectedFace] = []
 
-        for rank, face in enumerate(selected_faces, start=1):
+        # Take up to 2 photos of each person directly
+        for rank, face in enumerate(faces[:2], start=1):
             image = cv2.imread(str(face.image_path))
             if image is None:
                 continue
